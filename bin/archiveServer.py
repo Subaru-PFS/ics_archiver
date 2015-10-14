@@ -118,8 +118,13 @@ def startServer(options):
         raise
 
 
-if __name__ == '__main__':
-
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    if isinstance(argv, basestring):
+        import shlex
+        argv = shlex.split(argv)
+        
     import opscore.utility.config as config
     cli = config.ConfigOptionParser(
         product_name='archiver',config_file='archiver.ini',config_section='server'
@@ -149,9 +154,9 @@ if __name__ == '__main__':
         help='Port number of web server or zero to disable server')
     cli.add_option('--db-host',dest='dbHost',
         help='Hostname of database server')
-    cli.add_option('--db-user',dest='dbUser',type='secret',
+    cli.add_option('--db-user',dest='dbUser',type='string',
         help='Username for database transactions')
-    cli.add_option('--db-password',dest='dbPassword',type='secret',
+    cli.add_option('--db-password',dest='dbPassword',type='string',
         help='Password for database transactions')
     cli.add_option('--db-name',dest='dbName',
         help='Name of database containing archiver tables')
@@ -174,6 +179,10 @@ if __name__ == '__main__':
     cli.add_option('--system-clock',dest='systemClock',choices=('UTC','TAI'),
         help='Does system clock track UTC or TAI?')
         
-    (options,args) = cli.parse_args(passphrase='eye on the sky')
+    (options,args) = cli.parse_args(argv)
 
     startServer(options)
+
+if __name__ == '__main__':
+    main()
+

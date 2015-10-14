@@ -45,6 +45,7 @@ class Actor(object):
             ),bufferSize=3)
         # try to (re)load this actor's dictionary
         try:
+            log.msg('loading keydict for %s' % (name))
             self.kdict = keys.KeysDictionary.load(name,forceReload=True)
             cksum = self.kdict.checksum
             (major,minor) = self.kdict.version

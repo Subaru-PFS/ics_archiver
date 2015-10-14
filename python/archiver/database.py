@@ -41,7 +41,7 @@ def init(options):
     global sqlTypes
     host,user,pw,db = options.dbHost,options.dbUser,options.dbPassword,options.dbName
     if options.dbEngine == 'postgres':
-        dbModule = 'pyPgSQL.PgSQL'
+        dbModule = 'psycopg2'
         connectionArgs = { 'user':user, 'password':pw, 'host':host, 'database':db }
         scanTables = "select tablename from pg_tables where tableowner='%s'" % user
         Table.insertStatement = string.Template("COPY $table FROM '$file' CSV QUOTE ''''")
@@ -94,6 +94,8 @@ def init(options):
     for tableInfo in tables.fetchall():
         # SQL identifiers are generally case insensitive so lower-case everything
         tableName = tableInfo[0].lower()
+        if tableName.startswith('sql_') or tableName.startswith('pg_'):
+            continue
         # lookup the number of rows already stored in this table
         cursor.execute("select count(*) from %s" % tableName)
         tableRows = cursor.fetchone()[0]
@@ -686,3 +688,4 @@ class KeyTable(Table):
         """
         self.taiCache[rawID] = tai
         return Table.record(self,rawID,*rowValues)
+    
