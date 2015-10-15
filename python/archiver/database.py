@@ -266,6 +266,9 @@ class Table(object):
         each returned type is a fundamental (ie, not repeated or compound) type with a
         one-to-one correspondence with a table column.
         """
+
+        appendTypes = False
+        
         idNames = [ ]
         colNames = [ ]
         valueTypes = [ ]
@@ -287,7 +290,10 @@ class Table(object):
                     else:
                         repName = '%s_%d' % (name,repIndex)
                     idNames.append(repName)
-                    colNames.append('%s__%s' % (repName,storage))
+                    if appendTypes:
+                        colNames.append('%s__%s' % (repName,storage))
+                    else:
+                        colNames.append(repName)
                     valueTypes.append(col.vtype)
             elif isinstance(col,types.CompoundValueType):
                 name = (getattr(col,'name') or ('val%d' % index)).lower()
@@ -299,14 +305,22 @@ class Table(object):
                     subname = ("%s_%s" %
                         (name,(getattr(vtype,'name') or ('val%d' % subindex)).lower()))
                     idNames.append(subname)
-                    colNames.append('%s__%s' % (subname,storage))
+                    if appendTypes:
+                        colNames.append('%s__%s' % (subname,storage))
+                    else:
+                        colNames.append(subname)
+
                     valueTypes.append(vtype)
             else:
                 if not hasattr(col,'storage'):
                     raise DatabaseException("No storage type specified for column: %s" % col)
                 name = (getattr(col,'name') or ('val%d' % index)).lower()
                 idNames.append(name)
-                colNames.append('%s__%s' % (name,col.storage.lower()))
+                if appendTypes:
+                    colNames.append('%s__%s' % (name,col.storage.lower()))
+                else:
+                    colNames.append(name)
+                    
                 valueTypes.append(col)
         return (idNames,colNames,valueTypes)
 
@@ -445,7 +459,7 @@ class Table(object):
         """
         rowString = ''
         for index,colName in enumerate(self.columnNames):
-            storage = colName[colName.rindex('__')+2:]
+            storage = self.columnFinalTypes[index].storage.lower()
             # We might have fewer values than columns if the last columnType is
             # repeated with variable length.
             try:
@@ -500,7 +514,7 @@ class Table(object):
         statements = [ ]
         sql = 'create table %s (' % self.name
         for index,colName in enumerate(self.columnNames):
-            storage = colName[colName.rindex('__')+2:]
+            storage = self.columnFinalTypes[index].storage.lower()
             if storage not in sqlTypes:
                 raise DatabaseException('database: unsupported storage type: %s' % storage)
             sqlType = sqlTypes[storage]
