@@ -50,9 +50,9 @@ def startServer(options):
         log.startLogging(open(os.path.join(options.tmpPath,'server.log'),'w'))
 
     # find our product dir
-    info.productDir = os.getenv('ARCHIVER_DIR')
+    info.productDir = os.getenv('ICS_ARCHIVER_DIR')
     if not info.productDir:
-        print 'ARCHIVER_DIR is not defined. Will try to use working dir.'
+        print 'ICS_ARCHIVER_DIR is not defined. Will try to use working dir.'
         info.productDir = os.getcwd()
 
     # startup the database
@@ -127,7 +127,7 @@ def main(argv=None):
         
     import opscore.utility.config as config
     cli = config.ConfigOptionParser(
-        product_name='archiver',config_file='archiver.ini',config_section='server'
+        product_name='ics_archiver',config_file='archiver.ini',config_section='server'
     )
     
     cli.add_option('-i','--interactive',action='store_true',default=False,
