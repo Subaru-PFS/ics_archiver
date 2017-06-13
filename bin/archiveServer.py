@@ -16,6 +16,9 @@ import socket
 import archiver.protocol
 import archiver.database
 import archiver.web
+from archiver.utils import getEnvPath, LevelFileLogObserver
+import logging
+from twisted.python.logfile import LogFile
 
 class ServerInfo(object):
     pass
@@ -36,6 +39,10 @@ def startServer(options):
     info.commandLine = ' '.join(sys.argv)
 
     # create a unique temporary path to hold our logging and buffers
+    options.tmpPath = getEnvPath(options.tmpPath)
+    options.listenPath = getEnvPath(options.listenPath)
+    options.cmdPath = getEnvPath(options.cmdPath)
+
     print 'Running',__file__,'as PID',info.pid
     if 'PID' in options.tmpPath:
         options.tmpPath = options.tmpPath.replace('PID','%d') % info.pid
@@ -47,7 +54,9 @@ def startServer(options):
     if options.interactive:
         log.startLogging(sys.stdout)
     else:
-        log.startLogging(open(os.path.join(options.tmpPath,'server.log'),'w'))
+        f = LogFile("server.log", options.tmpPath+'/', rotateLength=1000000000)
+        logger = LevelFileLogObserver(f, logging.DEBUG)
+        log.addObserver(logger.emit)
 
     # find our product dir
     info.productDir = os.getenv('ICS_ARCHIVER_DIR')
