@@ -97,7 +97,9 @@ def init(options):
         if tableName.startswith('sql_') or tableName.startswith('pg_'):
             continue
         # lookup the number of rows already stored in this table
-        cursor.execute("select count(*) from %s" % tableName)
+        #cursor.execute("select count(*) from %s" % tableName)
+        idLab = 'id' if tableName in ["reply_raw", "actors"] else 'raw_id'
+        cursor.execute("select max(%s) from %s" % (idLab, tableName))
         tableRows = cursor.fetchone()[0]
         print "database: table %s contains %d rows" % (tableName,tableRows)
         # get a list of this table's column names
