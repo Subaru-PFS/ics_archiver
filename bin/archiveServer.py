@@ -16,6 +16,7 @@ import socket
 import archiver.protocol
 import archiver.database
 import archiver.web
+from archiver.utils import getEnvPath
 
 class ServerInfo(object):
     pass
@@ -36,6 +37,10 @@ def startServer(options):
     info.commandLine = ' '.join(sys.argv)
 
     # create a unique temporary path to hold our logging and buffers
+    options.tmpPath = getEnvPath(options.tmpPath)
+    options.listenPath = getEnvPath(options.listenPath)
+    options.cmdPath = getEnvPath(options.cmdPath)
+    
     print 'Running',__file__,'as PID',info.pid
     if 'PID' in options.tmpPath:
         options.tmpPath = options.tmpPath.replace('PID','%d') % info.pid
