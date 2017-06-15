@@ -101,6 +101,8 @@ def init(options):
         idLab = 'id' if tableName in ["reply_raw", "actors"] else 'raw_id'
         cursor.execute("select max(%s) from %s" % (idLab, tableName))
         tableRows = cursor.fetchone()[0]
+        if tableRows is None:
+            tableRows = 0
         print "database: table %s contains %d rows" % (tableName,tableRows)
         # get a list of this table's column names
         cursor.execute("select * from %s where 1=0" % tableName)
