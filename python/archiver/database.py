@@ -99,10 +99,12 @@ def init(options):
         # lookup the number of rows already stored in this table
         #cursor.execute("select count(*) from %s" % tableName)
         idLab = 'id' if tableName in ["reply_raw", "actors"] else 'raw_id'
-        cursor.execute("select max(%s) from %s" % (idLab, tableName))
-        tableRows = cursor.fetchone()[0]
+        cursor.execute("select COALESCE(max(%s), 0) from %s" % (idLab, tableName))
+        tableRows = cursor.fetchone()
         if tableRows is None:
-            tableRows = 0
+            raise ValueError('Could not get MAX(%s) from %s' % (idLab, tableName))
+        else:
+            tableRows = tableRows[0]
         print "database: table %s contains %d rows" % (tableName,tableRows)
         # get a list of this table's column names
         cursor.execute("select * from %s where 1=0" % tableName)
