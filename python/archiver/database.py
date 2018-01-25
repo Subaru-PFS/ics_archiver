@@ -382,10 +382,7 @@ class Table(object):
             (nRows,existingColumnNames) = Table.existing[self.name]
             # check that the declared column types are compatible with the existing table
             if self.columnNames != existingColumnNames:
-                raise DatabaseException(
-                    "Incompatible column definitions for %s:\nNEW: %s\n DB: %s" %
-                    (self.name,self.columnNames,existingColumnNames)
-                )
+                self.tryToAlterTable(existing=existingColumnNames)
             self.nRows = nRows
             print 'initializing exisiting table %s' % self.name
         else:
@@ -545,6 +542,34 @@ class Table(object):
         else:
             Table.release(self)
 
+    def tryToAlterTable(self, existing=None):
+        global sqlTypes
+
+        statements = []
+        sql0 = 'alter table %s add column' % self.name
+        for index,colName in enumerate(self.columnNames):
+            if colName in existing:
+                continue
+            
+            storage = self.columnFinalTypes[index].storage.lower()
+            if storage not in sqlTypes:
+                raise DatabaseException('database: unsupported storage type: %s' % storage)
+            sqlType = sqlTypes[storage]
+            sql = "%s %s %s" % (sql0, colName,sqlType)
+            statements.append(sql)
+            
+        self.busy = True
+        if Table.connectionPool:
+            Table.connectionPool.runInteraction(
+                executeSQL,statements,self).addCallback(Table.release)
+        else:
+            Table.release(self)
+
+        raise DatabaseException(
+            "Incompatible column definitions for %s:\nNEW: %s\n DB: %s" %
+            (self.name,self.columnNames,existingColumnNames)
+        )
+        
 def keyTableFetch(transaction,sql,vtypes,data = None):
     """
     Starts a database transaction to load rows from a key table
