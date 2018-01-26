@@ -8,6 +8,8 @@ from __future__ import print_function
 
 # Created 27-Feb-2009 by David Kirkby (dkirkby@uci.edu)
 
+from past.builtins import basestring
+from builtins import object
 import sys
 import time
 import os,os.path

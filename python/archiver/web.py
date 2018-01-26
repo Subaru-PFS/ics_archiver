@@ -6,6 +6,8 @@ Refer to https://trac.sdss3.org/wiki/Ops/Arch/Server for details.
 
 # Created 21-Apr-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import str
+from builtins import object
 import os,os.path
 import time
 from operator import itemgetter
@@ -210,7 +212,7 @@ class InfoHandler(WebQuery):
             nKeys = 0
             nUpdates = 0
             mostActive = ''
-            for key,count in sorted(actor.keyStats.iteritems(),
+            for key,count in sorted(iter(actor.keyStats.items()),
                 key=itemgetter(1),reverse=True):
                 if nKeys < 10:
                     mostActive += '%s (%d) ' % (key,count)

@@ -7,6 +7,8 @@ from __future__ import print_function
 
 # Created 22-Jun-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import zip
+from builtins import str
 import datetime
 
 from archiver import actors,web,database

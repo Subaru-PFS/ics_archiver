@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
+from builtins import object
 import time
 import opscore.protocols.parser as parser
 import opscore.protocols.keys as keys
@@ -92,7 +94,7 @@ db.commit()
 
 begin = time.time()
 
-for count in xrange(repeat):
+for count in range(repeat):
     # fake a received message
     if not preParsed or not count:
         now = AstroTime.now(tz=TAI)

@@ -7,6 +7,9 @@ from __future__ import print_function
 
 # Created 03-Aug-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import zip
+from builtins import str
+from builtins import object
 from archiver import expression,database,actors
 from opscore.protocols import keys
 
@@ -48,7 +51,7 @@ def subscriberInfo():
     """
     info = [ ]
     now = time.time()
-    for subid,sub in subscribers.iteritems():
+    for subid,sub in subscribers.items():
         info.append((subid,sub.monitorExpr.name,sub.timeout,now-sub.lastFlush))
     return info
     

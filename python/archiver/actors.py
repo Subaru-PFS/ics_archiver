@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 # Created 06-Mar-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import object
 from twisted.python import log
 
 from opscore.protocols import keys,types
@@ -96,4 +97,4 @@ class Actor(object):
         """
         Returns an alphabetical list of all known actor names
         """
-        return sorted(set(Actor.existing.keys()).union(Actor.registry.keys()))
+        return sorted(set(Actor.existing.keys()).union(list(Actor.registry.keys())))

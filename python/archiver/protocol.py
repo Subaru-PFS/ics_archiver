@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 # Created 27-Feb-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import str
 from datetime import datetime
 
 import twisted.internet.error

@@ -3,9 +3,15 @@ Archiver interface to database storage
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 # Created 01-Mar-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import os,os.path,string,time
 
 from twisted.internet import defer
@@ -123,7 +129,7 @@ def init(options):
             actors.Actor.existing[name] = (idnum,major,minor,cksum)
     else:
         print("database: no actors defined")
-    for actorName in sorted(actors.Actor.existing.iterkeys()):
+    for actorName in sorted(actors.Actor.existing.keys()):
         (idnum,major,minor,cksum) = actors.Actor.existing[actorName]
         print("database: expecting %s actor at version %d.%d" % (actorName,major,minor))
 
@@ -173,7 +179,7 @@ def shutdown(dbapi,**connectionArgs):
     db = dbapi.connect(**connectionArgs)
     cursor = db.cursor()
     # close out each table in turn
-    for table in Table.registry.itervalues():
+    for table in Table.registry.values():
         print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
         table.bufferFile.close()
         if len(table.rowBuffer) > 0:
@@ -232,7 +238,7 @@ def ping(options):
     # find table that has been idle longest
     maxIdler = None
     maxIdleTime = 0
-    for table in Table.registry.itervalues():
+    for table in Table.registry.values():
         idleTime = now - table.lastActivity
         if idleTime > maxIdleTime and len(table.rowBuffer) > 0 and not table.busy:
             maxIdler = table
@@ -291,7 +297,7 @@ class Table(object):
                 # there is no maximum number of repeats specified, only the minimum
                 # number will be stored in the database.
                 repeat = col.maxRepeat or col.minRepeat
-                for repIndex in xrange(repeat):
+                for repIndex in range(repeat):
                     if col.minRepeat == 1 and col.maxRepeat == 1:
                         # don't number a value that is only repeated once
                         repName = name
@@ -587,7 +593,7 @@ def keyTableFetch(transaction,sql,vtypes,data = None):
         print('transaction finished')
         for rowRaw in transaction.fetchall():
             # the first value is always a TAI timestamp in MJD seconds
-            rowTyped = [ astrotime.AstroTime.fromMJD(rowRaw[0]/86400.,astrotime.TAI) ]
+            rowTyped = [ astrotime.AstroTime.fromMJD(old_div(rowRaw[0],86400.),astrotime.TAI) ]
             for vtype,value in zip(vtypes[1:],rowRaw[1:]):
                 if value is None:
                     rowTyped.append(types.InvalidValue)
