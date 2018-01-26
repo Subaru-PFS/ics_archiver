@@ -19,7 +19,7 @@ from . import database,actors,monitor
 
 class MessageReceiver(Receiver):
     
-    delimiter = '\n' # lines ending with \r\n (e.g., from telnet) will have trailing \r
+    delimiter = b'\n' # lines ending with \r\n (e.g., from telnet) will have trailing \r
     
     def __init__(self,name=None):
         self.name = name
@@ -45,6 +45,7 @@ class MessageReceiver(Receiver):
         return Receiver.connectionLost(self,reason)
 
     def lineReceived(self, message):
+        message = message.decode('latin-1')
         self.messagesReceived += 1
         # strip off a trailing \r (this allows us to accept lines via telnet)
         if message[-1] == '\r':
