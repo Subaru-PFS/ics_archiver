@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import range
+from builtins import object
 import time
 import opscore.protocols.parser as parser
 import opscore.protocols.keys as keys
@@ -34,9 +37,9 @@ else:
         apilevel,threadsafety,paramstyle = None,None,None
     db = LazyDatabase()
 
-print 'Using DB engine:',dbengine
-print 'API level, Thread safety, Param style =',dbapi.apilevel,dbapi.threadsafety,dbapi.paramstyle
-print 'config:',config
+print('Using DB engine:',dbengine)
+print('API level, Thread safety, Param style =',dbapi.apilevel,dbapi.threadsafety,dbapi.paramstyle)
+print('config:',config)
 
 replyParser = parser.ReplyParser()
 
@@ -91,7 +94,7 @@ db.commit()
 
 begin = time.time()
 
-for count in xrange(repeat):
+for count in range(repeat):
     # fake a received message
     if not preParsed or not count:
         now = AstroTime.now(tz=TAI)
@@ -119,7 +122,7 @@ for count in xrange(repeat):
 
 end = time.time()
 elapsed = end - begin
-print '%d columns written in %.3f secs: rate = %.2f kHz' % (repeat,elapsed,1e-3*repeat/elapsed)
+print('%d columns written in %.3f secs: rate = %.2f kHz' % (repeat,elapsed,1e-3*repeat/elapsed))
 
 cursor.close()
 db.close()

@@ -2,6 +2,7 @@
 """
 Simulates the hub
 """
+from __future__ import print_function
 
 from twisted.internet import protocol,reactor,task
 from twisted.protocols import basic
@@ -24,7 +25,7 @@ def start():
     factory = protocol.Factory()
     factory.protocol = HubFeed
     reactor.listenTCP(hubPort,factory)
-    print 'hub simulator ready on port',hubPort
+    print('hub simulator ready on port',hubPort)
     reactor.run()
     
 if __name__ == '__main__':

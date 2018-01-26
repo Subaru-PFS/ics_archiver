@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import re
 import socket
 import fileinput
@@ -21,11 +22,11 @@ def logfeed(instream,outstream,options):
         if matched:
             # starting a new burst?
             if totalCount % options.burst == 0:
-                print 'burst start'
+                print('burst start')
                 burstStart = time.time()
                 if options.trace:
-                    print >>options.traceFile, "%d %f" % (
-                        totalCount,burstStart-options.traceStart)
+                    print("%d %f" % (
+                        totalCount,burstStart-options.traceStart), file=options.traceFile)
             # reformat the message to look like it came via the hub
             (commandId,userNum,replyCode,replyText) = matched.groups()
             msg = 'telrun.user%s %s %s %s%s%s' % (
@@ -34,20 +35,20 @@ def logfeed(instream,outstream,options):
             totalCount += 1
             # reached the end of a message burst?
             if totalCount % options.burst == 0:
-                print 'burst stop'
+                print('burst stop')
                 if options.trace:
-                    print >>options.traceFile, "%d %f" % (
-                        totalCount,time.time()-options.traceStart)
+                    print("%d %f" % (
+                        totalCount,time.time()-options.traceStart), file=options.traceFile)
                 burstDuration = time.time() - burstStart
                 remaining = options.ival - burstDuration
                 if remaining > 0:
                     time.sleep(remaining)
                 else:
-                    print 'burst interval too short: %f sec' % options.ival
+                    print('burst interval too short: %f sec' % options.ival)
             # reached the total number of bursts requested?
             if totalCount >= maxCount:
                 break
-    print 'fed %d lines' % totalCount
+    print('fed %d lines' % totalCount)
 
 
 if __name__ == '__main__':
@@ -84,7 +85,7 @@ if __name__ == '__main__':
     if options.trace:
         options.traceFile = open(options.trace,'w')
         options.traceStart = time.time()
-        print >>options.traceFile, 'START %f' % options.traceStart
+        print('START %f' % options.traceStart, file=options.traceFile)
 
     # open a socket using the requested transport
     if options.trans == 'inet':

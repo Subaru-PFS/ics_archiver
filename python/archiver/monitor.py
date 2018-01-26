@@ -3,9 +3,13 @@ Archiver keyword monitoring interface
 
 Refer to https://trac.sdss3.org/wiki/Ops/Arch/Server for details.
 """
+from __future__ import print_function
 
 # Created 03-Aug-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import zip
+from builtins import str
+from builtins import object
 from archiver import expression,database,actors
 from opscore.protocols import keys
 
@@ -47,7 +51,7 @@ def subscriberInfo():
     """
     info = [ ]
     now = time.time()
-    for subid,sub in subscribers.iteritems():
+    for subid,sub in subscribers.items():
         info.append((subid,sub.monitorExpr.name,sub.timeout,now-sub.lastFlush))
     return info
     
@@ -102,8 +106,8 @@ class MonitorSubscription(object):
             self.monitorExpr.loadByDate(history,'now').addCallback(self.gotHistory)
         
     def gotHistory(self,history):
-        print '=== gotHistory','='*20
-        print repr(history)
+        print('=== gotHistory','='*20)
+        print(repr(history))
         for (keytag,timestamp,values) in history:
             self.update(keytag,timestamp,values)
         self.waiting = False
@@ -153,7 +157,7 @@ class MonitorExpression(object):
             self.register(child)
         if not isinstance(node,expression.KeyValue):
             return
-        print 'Registering',node
+        print('Registering',node)
         # is this a valid actor?
         actorName = node.args[0].lower()
         try:
@@ -169,7 +173,7 @@ class MonitorExpression(object):
             key = actor.kdict[keyName]
             table = database.KeyTable.attach(actor,key)
             self.tables.append(table)
-        except Exception, e:
+        except Exception as e:
             raise MonitorError('Unable to attach %s.%s:\n%s' % (actorName,keyName,str(e)))
         # is this a valid value name?
         foundIndex = None
@@ -193,7 +197,7 @@ class MonitorExpression(object):
         for (success,tableData),table in zip(results,self.tables):
             if not success:
                 raise MonitorError('Unable to load data for %s' % table.tag)
-            print 'processing %d rows from %s' % (len(tableData),table.tag)
+            print('processing %d rows from %s' % (len(tableData),table.tag))
             for row in tableData:
                 timestamp,values = row[0],row[1:]
                 tai = timestamp.MJD()*86400.
