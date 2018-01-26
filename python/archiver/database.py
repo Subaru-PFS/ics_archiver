@@ -10,7 +10,6 @@ from __future__ import division
 from builtins import zip
 from builtins import str
 from builtins import range
-from past.utils import old_div
 from builtins import object
 import os,os.path,string,time
 
@@ -575,7 +574,7 @@ class Table(object):
 
         raise DatabaseException(
             "Incompatible column definitions for %s:\nNEW: %s\n DB: %s" %
-            (self.name,self.columnNames,existingColumnNames)
+            (self.name,self.columnNames,existing)
         )
         
 def keyTableFetch(transaction,sql,vtypes,data = None):
@@ -593,7 +592,7 @@ def keyTableFetch(transaction,sql,vtypes,data = None):
         print('transaction finished')
         for rowRaw in transaction.fetchall():
             # the first value is always a TAI timestamp in MJD seconds
-            rowTyped = [ astrotime.AstroTime.fromMJD(old_div(rowRaw[0],86400.),astrotime.TAI) ]
+            rowTyped = [astrotime.AstroTime.fromMJD(rowRaw[0],86400.)/astrotime.TAI]
             for vtype,value in zip(vtypes[1:],rowRaw[1:]):
                 if value is None:
                     rowTyped.append(types.InvalidValue)
