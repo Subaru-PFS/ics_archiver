@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import time
 import opscore.protocols.parser as parser
 import opscore.protocols.keys as keys
@@ -34,9 +35,9 @@ else:
         apilevel,threadsafety,paramstyle = None,None,None
     db = LazyDatabase()
 
-print 'Using DB engine:',dbengine
-print 'API level, Thread safety, Param style =',dbapi.apilevel,dbapi.threadsafety,dbapi.paramstyle
-print 'config:',config
+print('Using DB engine:',dbengine)
+print('API level, Thread safety, Param style =',dbapi.apilevel,dbapi.threadsafety,dbapi.paramstyle)
+print('config:',config)
 
 replyParser = parser.ReplyParser()
 
@@ -119,7 +120,7 @@ for count in xrange(repeat):
 
 end = time.time()
 elapsed = end - begin
-print '%d columns written in %.3f secs: rate = %.2f kHz' % (repeat,elapsed,1e-3*repeat/elapsed)
+print('%d columns written in %.3f secs: rate = %.2f kHz' % (repeat,elapsed,1e-3*repeat/elapsed))
 
 cursor.close()
 db.close()

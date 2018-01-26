@@ -3,6 +3,7 @@ Archiver web browser interface
 
 Refer to https://trac.sdss3.org/wiki/Ops/Arch/Server for details.
 """
+from __future__ import print_function
 
 # Created 22-Jun-2009 by David Kirkby (dkirkby@uci.edu)
 
@@ -58,8 +59,8 @@ class BrowseHandler(web.WebQuery):
             actor = None
             try:
                 actor = actors.Actor.attach(actorName.lower(),dictionaryRequired=True)
-            except actors.ActorException,e:
-                print str(e)
+            except actors.ActorException as e:
+                print(str(e))
             if actor:
                 node = html.A(actorName,href='?actor=%s'%actorName,
                     title='Using %s dictionary version %d.%d' %
@@ -151,7 +152,7 @@ class BrowseHandler(web.WebQuery):
             else:
                 try:
                     actor = actors.Actor.attach(actorName.lower(),dictionaryRequired=True)
-                except actors.ActorException,e:
+                except actors.ActorException as e:
                     return self.error('Unable to load dictionary for %s' % actorName)
                 if keyName:
                     if keyName.lower() not in actor.kdict:
@@ -167,7 +168,7 @@ class BrowseHandler(web.WebQuery):
                                 % (actorName,keyName))
                         try:
                             keyTable = database.KeyTable.attach(actor,key)
-                        except Exception, e:
+                        except Exception as e:
                             errmsg = ('Unable to read %s.%s: %s'
                                 % (actorName,keyName,e.__class__.__name__))
                             return self.error(errmsg)

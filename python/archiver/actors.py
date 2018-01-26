@@ -1,13 +1,15 @@
 """
 Archiver support for tracking SDSS-3 hub actors
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 # Created 06-Mar-2009 by David Kirkby (dkirkby@uci.edu)
 
 from twisted.python import log
 
 from opscore.protocols import keys,types
-import database
+from . import database
 
 class ActorException(Exception):
     pass
@@ -49,7 +51,7 @@ class Actor(object):
             self.kdict = keys.KeysDictionary.load(name,forceReload=True)
             cksum = self.kdict.checksum
             (major,minor) = self.kdict.version
-        except keys.KeysDictionaryError,e:
+        except keys.KeysDictionaryError as e:
             if dictionaryRequired:
                 raise ActorException('No %s dictionary available' % name)
             log.err('dictionary load error: %s' % e)
@@ -65,18 +67,18 @@ class Actor(object):
                     raise ActorException(
                         'Dictionary has changed without version update for %s %d.%d' %
                         (name,major,minor))
-                print 're-initializing %s actor version %d.%d' % (name,major,minor)
+                print('re-initializing %s actor version %d.%d' % (name,major,minor))
                 self.idnum = ex_idnum
             elif major < ex_major or (major == ex_major and minor < ex_minor):
                 raise ActorException(
                     'Found old dictionary for %s? %d.%d < %d.%d' %
                     (name,major,minor,ex_major,ex_minor))
             else:
-                print 'updating %s actor from %d.%d to %d.%d' % (
-                    name,ex_major,ex_minor,major,minor)
+                print('updating %s actor from %d.%d to %d.%d' % (
+                    name,ex_major,ex_minor,major,minor))
                 self.create(major,minor,cksum)
         else:
-            print 'recording new %s actor in database (version %d.%d)' % (name,major,minor)
+            print('recording new %s actor in database (version %d.%d)' % (name,major,minor))
             self.create(major,minor,cksum)
             
         # initialize our keyword statistics

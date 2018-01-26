@@ -1,6 +1,8 @@
 """
 Archiver interface to database storage
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 # Created 01-Mar-2009 by David Kirkby (dkirkby@uci.edu)
 
@@ -11,7 +13,7 @@ from twisted.python import log
 
 from opscore.protocols import types,messages
 from opscore.utility import astrotime
-import actors
+from . import actors
 
 class DatabaseException(Exception):
     pass
@@ -52,7 +54,7 @@ def init(options):
             "LOAD DATA INFILE '$file' INTO TABLE $table FIELDS " +
             "TERMINATED BY ',' ENCLOSED BY ''''")
     elif options.dbEngine == 'none':
-        print 'will not use any database engine'
+        print('will not use any database engine')
     else:
         raise DatabaseException('Unknown engine: %s' % options.dbEngine)
         
@@ -81,7 +83,7 @@ def init(options):
         
     # try to load the engine's DBAPI module
     import twisted.python.reflect
-    print 'importing %s dbapi module %s' % (options.dbEngine,dbModule)
+    print('importing %s dbapi module %s' % (options.dbEngine,dbModule))
     dbapi = twisted.python.reflect.namedModule(dbModule)
 
     # open a database connection for initialization commands
@@ -105,7 +107,7 @@ def init(options):
             raise ValueError('Could not get MAX(%s) from %s' % (idLab, tableName))
         else:
             tableRows = tableRows[0]
-        print "database: table %s contains %d rows" % (tableName,tableRows)
+        print("database: table %s contains %d rows" % (tableName,tableRows))
         # get a list of this table's column names
         cursor.execute("select * from %s where 1=0" % tableName)
         columnNames = [ ]
@@ -120,10 +122,10 @@ def init(options):
             # a newer version will supercede older ones in the existing dictionary
             actors.Actor.existing[name] = (idnum,major,minor,cksum)
     else:
-        print "database: no actors defined"
+        print("database: no actors defined")
     for actorName in sorted(actors.Actor.existing.iterkeys()):
         (idnum,major,minor,cksum) = actors.Actor.existing[actorName]
-        print "database: expecting %s actor at version %d.%d" % (actorName,major,minor)
+        print("database: expecting %s actor at version %d.%d" % (actorName,major,minor))
 
     # close the initialization database connection
     cursor.close()
@@ -167,12 +169,12 @@ def initCoreTables(rawBufferSize,hdrBufferSize):
 
 
 def shutdown(dbapi,**connectionArgs):
-    print 'database: starting shutdown sequence'
+    print('database: starting shutdown sequence')
     db = dbapi.connect(**connectionArgs)
     cursor = db.cursor()
     # close out each table in turn
     for table in Table.registry.itervalues():
-        print 'database: flushing %d rows to %s' % (len(table.rowBuffer),table.name)
+        print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
         table.bufferFile.close()
         if len(table.rowBuffer) > 0:
             statement = Table.insertStatement.substitute(
@@ -184,7 +186,7 @@ def shutdown(dbapi,**connectionArgs):
     cursor.close()
     db.commit()
     db.close()
-    print 'database: shutdown complete'
+    print('database: shutdown complete')
 
 def executeSQL(transaction,statements,table):
     """
@@ -210,7 +212,7 @@ def loadFile(transaction,bufferFile,table):
     try:
         transaction.execute(statement)
         os.unlink(bufferFileName)
-    except Exception, e:
+    except Exception as e:
         log.err('database.loadFile failed for %s with error: %s (see below for details)'
             % (bufferFileName,e.__class__.__name__))
         log.err(str(e))
@@ -236,7 +238,7 @@ def ping(options):
             maxIdler = table
             maxIdleTime = idleTime
     if maxIdler and not maxIdler.busy:
-        print 'Flushing table %s idle for %.3f secs' % (maxIdler.name,idleTime)
+        print('Flushing table %s idle for %.3f secs' % (maxIdler.name,idleTime))
         maxIdler.flushBuffer()
         maxIdler.openBuffer()
 
@@ -259,8 +261,8 @@ class Table(object):
         Normally invoked as a twisted Deferred callback.
         """
         if table.traceEnable:
-            print >>table.traceFile, "OUT %d %f" % (
-                table.traceOut,time.time()-table.traceStart)
+            print("OUT %d %f" % (
+                table.traceOut,time.time()-table.traceStart), file=table.traceFile)
         table.busy = False
         
     @staticmethod
@@ -384,16 +386,16 @@ class Table(object):
             if self.columnNames != existingColumnNames:
                 self.tryToAlterTable(existing=existingColumnNames)
             self.nRows = nRows
-            print 'initializing exisiting table %s' % self.name
+            print('initializing exisiting table %s' % self.name)
         else:
             # create a new empty table
             self.nRows = 0
-            print 'creating new table %s with %r' % (self.name,self.columnNames)
+            print('creating new table %s with %r' % (self.name,self.columnNames))
             self.create(indices)
         # initialize this table's memory and file buffers
         try:
             self.bufferSize = int(bufferSize)
-        except ValueError,TypeError:
+        except ValueError as TypeError:
             raise DatabaseException("Invalid buffer size for table %s: %r" % 
                 (self.name,bufferSize))
         if self.bufferSize <= 0:
@@ -421,17 +423,17 @@ class Table(object):
         """
         if not self.traceEnable and enable:
             # turn tracing on
-            print 'Start trace on table',self.name
+            print('Start trace on table',self.name)
             self.traceEnable = True
             self.traceFile = open(os.path.join(Table.bufferPath,'%s.trace' % self.name),'w')
             self.traceRows = self.nRows
             self.traceOut = 0
             self.traceStart = time.time()
-            print >>self.traceFile, "START %f" % self.traceStart
-            print >>self.traceFile, "IN 0 0.0"
+            print("START %f" % self.traceStart, file=self.traceFile)
+            print("IN 0 0.0", file=self.traceFile)
         elif self.traceEnable and not enable:
             # turn tracing off
-            print 'Stop trace on table',self.name
+            print('Stop trace on table',self.name)
             self.traceEnable = False
             self.traceFile.close()
 
@@ -442,12 +444,12 @@ class Table(object):
         self.bufferFile = open(self.bufferFileName,'w')
         
     def flushBuffer(self):
-        print '%s: flushing %d rows' % (self.name,len(self.rowBuffer))
+        print('%s: flushing %d rows' % (self.name,len(self.rowBuffer)))
         self.nFlushes += 1
         self.busy = True
         if self.traceEnable:
-            print >>self.traceFile, "OUT %d %f" % (
-                self.traceOut,time.time()-self.traceStart)
+            print("OUT %d %f" % (
+                self.traceOut,time.time()-self.traceStart), file=self.traceFile)
             self.traceOut += len(self.rowBuffer)
         if Table.connectionPool:
             Table.connectionPool.runInteraction(
@@ -487,19 +489,19 @@ class Table(object):
                     rowString += str(int(value))
             elif storage[:3] == 'flt':
                 rowString += repr(float(value))
-        print >> self.bufferFile, rowString
+        print(rowString, file=self.bufferFile)
         self.rowBuffer.append(rowValues)
         self.nRows += 1
         # record the time of this table activity
         self.recordActivity()
         # trace this table write
         if self.traceEnable:
-            print >>self.traceFile, "IN %d %f" % (
-                self.nRows-self.traceRows,self.lastActivity-self.traceStart)
+            print("IN %d %f" % (
+                self.nRows-self.traceRows,self.lastActivity-self.traceStart), file=self.traceFile)
         # flush this table now?
         if len(self.rowBuffer) >= self.bufferSize:
             if self.busy:
-                print 'delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name)
+                print('delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name))
             else:
                 self.flushBuffer()
                 self.openBuffer()
@@ -579,10 +581,10 @@ def keyTableFetch(transaction,sql,vtypes,data = None):
     """
     if data is None:
         data = [ ]
-    print 'keyTableFetch >>>',sql
+    print('keyTableFetch >>>',sql)
     try:
         transaction.execute(sql)
-        print 'transaction finished'
+        print('transaction finished')
         for rowRaw in transaction.fetchall():
             # the first value is always a TAI timestamp in MJD seconds
             rowTyped = [ astrotime.AstroTime.fromMJD(rowRaw[0]/86400.,astrotime.TAI) ]
@@ -592,7 +594,7 @@ def keyTableFetch(transaction,sql,vtypes,data = None):
                 else:
                     rowTyped.append(vtype(value))
             data.append(rowTyped)
-        print 'data appended'
+        print('data appended')
         return data
     except:
         # since this executes in a separate thread, we won't see exceptions unless
