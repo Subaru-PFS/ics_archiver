@@ -14,8 +14,8 @@ from builtins import object
 import math
 import builtins
 
-import external.ply.lex as lex
-import external.ply.yacc as yacc
+import ply.lex as lex
+import ply.yacc as yacc
 
 # http://www.lysator.liu.se/c/ANSI-C-grammar-l.html
 # http://www.lysator.liu.se/c/ANSI-C-grammar-y.html
