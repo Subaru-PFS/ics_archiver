@@ -4,9 +4,12 @@ Archiver server program
 
 Refer to https://trac.sdss3.org/wiki/Ops/Arch/Server for details.
 """
+from __future__ import print_function
 
 # Created 27-Feb-2009 by David Kirkby (dkirkby@uci.edu)
 
+from past.builtins import basestring
+from builtins import object
 import sys
 import time
 import os,os.path
@@ -16,6 +19,9 @@ import socket
 import archiver.protocol
 import archiver.database
 import archiver.web
+from archiver.utils import getEnvPath, LevelFileLogObserver
+import logging
+from twisted.python.logfile import LogFile
 
 class ServerInfo(object):
     pass
@@ -36,23 +42,29 @@ def startServer(options):
     info.commandLine = ' '.join(sys.argv)
 
     # create a unique temporary path to hold our logging and buffers
-    print 'Running',__file__,'as PID',info.pid
+    options.tmpPath = getEnvPath(options.tmpPath)
+    options.listenPath = getEnvPath(options.listenPath)
+    options.cmdPath = getEnvPath(options.cmdPath)
+
+    print('Running',__file__,'as PID',info.pid)
     if 'PID' in options.tmpPath:
         options.tmpPath = options.tmpPath.replace('PID','%d') % info.pid
     assert not os.path.exists(options.tmpPath)
     os.makedirs(options.tmpPath)
-    print 'Starting archive server with output to',options.tmpPath
+    print('Starting archive server with output to',options.tmpPath)
 
     # start logging all stdout and stderr traffic
     if options.interactive:
         log.startLogging(sys.stdout)
     else:
-        log.startLogging(open(os.path.join(options.tmpPath,'server.log'),'w'))
+        f = LogFile("server.log", options.tmpPath+'/', rotateLength=1000000000)
+        logger = LevelFileLogObserver(f, logging.DEBUG)
+        log.addObserver(logger.emit)
 
     # find our product dir
-    info.productDir = os.getenv('ARCHIVER_DIR')
+    info.productDir = os.getenv('ICS_ARCHIVER_DIR')
     if not info.productDir:
-        print 'ARCHIVER_DIR is not defined. Will try to use working dir.'
+        print('ICS_ARCHIVER_DIR is not defined. Will try to use working dir.')
         info.productDir = os.getcwd()
 
     # startup the database
@@ -72,21 +84,21 @@ def startServer(options):
         replyFactory = protocol.Factory()
         replyFactory.protocol = archiver.protocol.ReplyReceiver
         if options.listenPort > 0:
-            print 'Listening for replies on TCP port %d' % options.listenPort
+            print('Listening for replies on TCP port %d' % options.listenPort)
             reactor.listenTCP(options.listenPort,replyFactory)
         if options.listenPath:
-            print 'Listening for replies on UNIX path %s' % options.listenPath
+            print('Listening for replies on UNIX path %s' % options.listenPath)
             reactor.listenUNIX(options.listenPath,replyFactory)
         
         # connect to the hub's reply message stream        
         if options.hubHost and options.hubPort > 0:
-            print 'Looking for the hub at %s:%d' % (options.hubHost,options.hubPort)
+            print('Looking for the hub at %s:%d' % (options.hubHost,options.hubPort))
             class HubFactory(protocol.ReconnectingClientFactory):
                 initialDelay = options.hubInitialDelay
                 factor = options.hubDelayFactor
                 maxDelay = options.hubMaxDelay*3600.0
                 def buildProtocol(self,addr):
-                    print 'Connected to the hub'
+                    print('Connected to the hub')
                     handler = archiver.protocol.ReplyReceiver()
                     handler.factory = self
                     self.resetDelay()
@@ -97,10 +109,10 @@ def startServer(options):
         cmdFactory = protocol.Factory()
         cmdFactory.protocol = archiver.protocol.CommandReceiver
         if options.cmdPort > 0:
-            print 'Listening for commands on TCP port %d' % options.cmdPort
+            print('Listening for commands on TCP port %d' % options.cmdPort)
             reactor.listenTCP(options.cmdPort,cmdFactory)
         if options.cmdPath:
-            print 'Listening for commands on UNIX path %s' % options.cmdPath
+            print('Listening for commands on UNIX path %s' % options.cmdPath)
             reactor.listenUNIX(options.cmdPath,cmdFactory)
            
         # start up a web server
@@ -111,7 +123,7 @@ def startServer(options):
         reactor.run()
     
     except Exception:
-        print 'Reactor started failed'
+        print('Reactor started failed')
         # need to release unix socket cleanly here...
         if options.listenPath:
             os.unlink(options.listenPath)
@@ -127,7 +139,7 @@ def main(argv=None):
         
     import opscore.utility.config as config
     cli = config.ConfigOptionParser(
-        product_name='archiver',config_file='archiver.ini',config_section='server'
+        product_name='ics_archiver',config_file='archiver.ini',config_section='server'
     )
     
     cli.add_option('-i','--interactive',action='store_true',default=False,

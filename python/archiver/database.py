@@ -1,9 +1,16 @@
 """
 Archiver interface to database storage
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 # Created 01-Mar-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import os,os.path,string,time
 
 from twisted.internet import defer
@@ -11,7 +18,7 @@ from twisted.python import log
 
 from opscore.protocols import types,messages
 from opscore.utility import astrotime
-import actors
+from . import actors
 
 class DatabaseException(Exception):
     pass
@@ -52,7 +59,7 @@ def init(options):
             "LOAD DATA INFILE '$file' INTO TABLE $table FIELDS " +
             "TERMINATED BY ',' ENCLOSED BY ''''")
     elif options.dbEngine == 'none':
-        print 'will not use any database engine'
+        print('will not use any database engine')
     else:
         raise DatabaseException('Unknown engine: %s' % options.dbEngine)
         
@@ -81,7 +88,7 @@ def init(options):
         
     # try to load the engine's DBAPI module
     import twisted.python.reflect
-    print 'importing %s dbapi module %s' % (options.dbEngine,dbModule)
+    print('importing %s dbapi module %s' % (options.dbEngine,dbModule))
     dbapi = twisted.python.reflect.namedModule(dbModule)
 
     # open a database connection for initialization commands
@@ -97,9 +104,15 @@ def init(options):
         if tableName.startswith('sql_') or tableName.startswith('pg_'):
             continue
         # lookup the number of rows already stored in this table
-        cursor.execute("select count(*) from %s" % tableName)
-        tableRows = cursor.fetchone()[0]
-        print "database: table %s contains %d rows" % (tableName,tableRows)
+        #cursor.execute("select count(*) from %s" % tableName)
+        idLab = 'id' if tableName in ["reply_raw", "actors"] else 'raw_id'
+        cursor.execute("select COALESCE(max(%s), 0) from %s" % (idLab, tableName))
+        tableRows = cursor.fetchone()
+        if tableRows is None:
+            raise ValueError('Could not get MAX(%s) from %s' % (idLab, tableName))
+        else:
+            tableRows = tableRows[0]
+        print("database: table %s contains %d rows" % (tableName,tableRows))
         # get a list of this table's column names
         cursor.execute("select * from %s where 1=0" % tableName)
         columnNames = [ ]
@@ -114,10 +127,10 @@ def init(options):
             # a newer version will supercede older ones in the existing dictionary
             actors.Actor.existing[name] = (idnum,major,minor,cksum)
     else:
-        print "database: no actors defined"
-    for actorName in sorted(actors.Actor.existing.iterkeys()):
+        print("database: no actors defined")
+    for actorName in sorted(actors.Actor.existing.keys()):
         (idnum,major,minor,cksum) = actors.Actor.existing[actorName]
-        print "database: expecting %s actor at version %d.%d" % (actorName,major,minor)
+        print("database: expecting %s actor at version %d.%d" % (actorName,major,minor))
 
     # close the initialization database connection
     cursor.close()
@@ -161,12 +174,12 @@ def initCoreTables(rawBufferSize,hdrBufferSize):
 
 
 def shutdown(dbapi,**connectionArgs):
-    print 'database: starting shutdown sequence'
+    print('database: starting shutdown sequence')
     db = dbapi.connect(**connectionArgs)
     cursor = db.cursor()
     # close out each table in turn
-    for table in Table.registry.itervalues():
-        print 'database: flushing %d rows to %s' % (len(table.rowBuffer),table.name)
+    for table in Table.registry.values():
+        print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
         table.bufferFile.close()
         if len(table.rowBuffer) > 0:
             statement = Table.insertStatement.substitute(
@@ -178,7 +191,7 @@ def shutdown(dbapi,**connectionArgs):
     cursor.close()
     db.commit()
     db.close()
-    print 'database: shutdown complete'
+    print('database: shutdown complete')
 
 def executeSQL(transaction,statements,table):
     """
@@ -204,7 +217,7 @@ def loadFile(transaction,bufferFile,table):
     try:
         transaction.execute(statement)
         os.unlink(bufferFileName)
-    except Exception, e:
+    except Exception as e:
         log.err('database.loadFile failed for %s with error: %s (see below for details)'
             % (bufferFileName,e.__class__.__name__))
         log.err(str(e))
@@ -224,13 +237,13 @@ def ping(options):
     # find table that has been idle longest
     maxIdler = None
     maxIdleTime = 0
-    for table in Table.registry.itervalues():
+    for table in Table.registry.values():
         idleTime = now - table.lastActivity
         if idleTime > maxIdleTime and len(table.rowBuffer) > 0 and not table.busy:
             maxIdler = table
             maxIdleTime = idleTime
     if maxIdler and not maxIdler.busy:
-        print 'Flushing table %s idle for %.3f secs' % (maxIdler.name,idleTime)
+        print('Flushing table %s idle for %.3f secs' % (maxIdler.name,idleTime))
         maxIdler.flushBuffer()
         maxIdler.openBuffer()
 
@@ -253,8 +266,8 @@ class Table(object):
         Normally invoked as a twisted Deferred callback.
         """
         if table.traceEnable:
-            print >>table.traceFile, "OUT %d %f" % (
-                table.traceOut,time.time()-table.traceStart)
+            print("OUT %d %f" % (
+                table.traceOut,time.time()-table.traceStart), file=table.traceFile)
         table.busy = False
         
     @staticmethod
@@ -283,7 +296,7 @@ class Table(object):
                 # there is no maximum number of repeats specified, only the minimum
                 # number will be stored in the database.
                 repeat = col.maxRepeat or col.minRepeat
-                for repIndex in xrange(repeat):
+                for repIndex in range(repeat):
                     if col.minRepeat == 1 and col.maxRepeat == 1:
                         # don't number a value that is only repeated once
                         repName = name
@@ -376,21 +389,18 @@ class Table(object):
             (nRows,existingColumnNames) = Table.existing[self.name]
             # check that the declared column types are compatible with the existing table
             if self.columnNames != existingColumnNames:
-                raise DatabaseException(
-                    "Incompatible column definitions for %s:\nNEW: %s\n DB: %s" %
-                    (self.name,self.columnNames,existingColumnNames)
-                )
+                self.tryToAlterTable(existing=existingColumnNames)
             self.nRows = nRows
-            print 'initializing exisiting table %s' % self.name
+            print('initializing exisiting table %s' % self.name)
         else:
             # create a new empty table
             self.nRows = 0
-            print 'creating new table %s with %r' % (self.name,self.columnNames)
+            print('creating new table %s with %r' % (self.name,self.columnNames))
             self.create(indices)
         # initialize this table's memory and file buffers
         try:
             self.bufferSize = int(bufferSize)
-        except ValueError,TypeError:
+        except ValueError as TypeError:
             raise DatabaseException("Invalid buffer size for table %s: %r" % 
                 (self.name,bufferSize))
         if self.bufferSize <= 0:
@@ -418,17 +428,17 @@ class Table(object):
         """
         if not self.traceEnable and enable:
             # turn tracing on
-            print 'Start trace on table',self.name
+            print('Start trace on table',self.name)
             self.traceEnable = True
             self.traceFile = open(os.path.join(Table.bufferPath,'%s.trace' % self.name),'w')
             self.traceRows = self.nRows
             self.traceOut = 0
             self.traceStart = time.time()
-            print >>self.traceFile, "START %f" % self.traceStart
-            print >>self.traceFile, "IN 0 0.0"
+            print("START %f" % self.traceStart, file=self.traceFile)
+            print("IN 0 0.0", file=self.traceFile)
         elif self.traceEnable and not enable:
             # turn tracing off
-            print 'Stop trace on table',self.name
+            print('Stop trace on table',self.name)
             self.traceEnable = False
             self.traceFile.close()
 
@@ -439,12 +449,12 @@ class Table(object):
         self.bufferFile = open(self.bufferFileName,'w')
         
     def flushBuffer(self):
-        print '%s: flushing %d rows' % (self.name,len(self.rowBuffer))
+        print('%s: flushing %d rows' % (self.name,len(self.rowBuffer)))
         self.nFlushes += 1
         self.busy = True
         if self.traceEnable:
-            print >>self.traceFile, "OUT %d %f" % (
-                self.traceOut,time.time()-self.traceStart)
+            print("OUT %d %f" % (
+                self.traceOut,time.time()-self.traceStart), file=self.traceFile)
             self.traceOut += len(self.rowBuffer)
         if Table.connectionPool:
             Table.connectionPool.runInteraction(
@@ -484,19 +494,19 @@ class Table(object):
                     rowString += str(int(value))
             elif storage[:3] == 'flt':
                 rowString += repr(float(value))
-        print >> self.bufferFile, rowString
+        print(rowString, file=self.bufferFile)
         self.rowBuffer.append(rowValues)
         self.nRows += 1
         # record the time of this table activity
         self.recordActivity()
         # trace this table write
         if self.traceEnable:
-            print >>self.traceFile, "IN %d %f" % (
-                self.nRows-self.traceRows,self.lastActivity-self.traceStart)
+            print("IN %d %f" % (
+                self.nRows-self.traceRows,self.lastActivity-self.traceStart), file=self.traceFile)
         # flush this table now?
         if len(self.rowBuffer) >= self.bufferSize:
             if self.busy:
-                print 'delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name)
+                print('delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name))
             else:
                 self.flushBuffer()
                 self.openBuffer()
@@ -539,6 +549,34 @@ class Table(object):
         else:
             Table.release(self)
 
+    def tryToAlterTable(self, existing=None):
+        global sqlTypes
+
+        statements = []
+        sql0 = 'alter table %s add column' % self.name
+        for index,colName in enumerate(self.columnNames):
+            if colName in existing:
+                continue
+            
+            storage = self.columnFinalTypes[index].storage.lower()
+            if storage not in sqlTypes:
+                raise DatabaseException('database: unsupported storage type: %s' % storage)
+            sqlType = sqlTypes[storage]
+            sql = "%s %s %s" % (sql0, colName,sqlType)
+            statements.append(sql)
+            
+        self.busy = True
+        if Table.connectionPool:
+            Table.connectionPool.runInteraction(
+                executeSQL,statements,self).addCallback(Table.release)
+        else:
+            Table.release(self)
+
+        raise DatabaseException(
+            "Incompatible column definitions for %s:\nNEW: %s\n DB: %s" %
+            (self.name,self.columnNames,existing)
+        )
+        
 def keyTableFetch(transaction,sql,vtypes,data = None):
     """
     Starts a database transaction to load rows from a key table
@@ -548,20 +586,20 @@ def keyTableFetch(transaction,sql,vtypes,data = None):
     """
     if data is None:
         data = [ ]
-    print 'keyTableFetch >>>',sql
+    print('keyTableFetch >>>',sql)
     try:
         transaction.execute(sql)
-        print 'transaction finished'
+        print('transaction finished')
         for rowRaw in transaction.fetchall():
             # the first value is always a TAI timestamp in MJD seconds
-            rowTyped = [ astrotime.AstroTime.fromMJD(rowRaw[0]/86400.,astrotime.TAI) ]
+            rowTyped = [astrotime.AstroTime.fromMJD(rowRaw[0],86400.)/astrotime.TAI]
             for vtype,value in zip(vtypes[1:],rowRaw[1:]):
                 if value is None:
                     rowTyped.append(types.InvalidValue)
                 else:
                     rowTyped.append(vtype(value))
             data.append(rowTyped)
-        print 'data appended'
+        print('data appended')
         return data
     except:
         # since this executes in a separate thread, we won't see exceptions unless

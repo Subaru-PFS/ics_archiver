@@ -6,11 +6,16 @@ Refer to https://trac.sdss3.org/wiki/Ops/Arch/Expression for details.
 
 # Created 14-Nov-2008 by David Kirkby (dkirkby@uci.edu)
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
 import math
-import __builtin__
+import builtins
 
-import external.ply.lex as lex
-import external.ply.yacc as yacc
+import ply.lex as lex
+import ply.yacc as yacc
 
 # http://www.lysator.liu.se/c/ANSI-C-grammar-l.html
 # http://www.lysator.liu.se/c/ANSI-C-grammar-y.html

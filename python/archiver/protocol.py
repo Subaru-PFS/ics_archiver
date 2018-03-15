@@ -1,9 +1,12 @@
 """
 Twisted protocols to handle SDSS-3 operations messages
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 # Created 27-Feb-2009 by David Kirkby (dkirkby@uci.edu)
 
+from builtins import str
 from datetime import datetime
 
 import twisted.internet.error
@@ -12,11 +15,11 @@ from twisted.protocols.basic import LineOnlyReceiver as Receiver
 
 from opscore.protocols import parser,types,keys,validation
 from opscore.utility import astrotime
-import database,actors,monitor
+from . import database,actors,monitor
 
 class MessageReceiver(Receiver):
     
-    delimiter = '\n' # lines ending with \r\n (e.g., from telnet) will have trailing \r
+    delimiter = b'\n' # lines ending with \r\n (e.g., from telnet) will have trailing \r
     
     def __init__(self,name=None):
         self.name = name
@@ -29,19 +32,20 @@ class MessageReceiver(Receiver):
     
     def connectionMade(self):
         self.connectedSince = datetime.now()
-        print '%s: connected to %s' % (self.name,self.transport.getPeer())
+        print('%s: connected to %s' % (self.name,self.transport.getPeer()))
         return Receiver.connectionMade(self)
 
     def connectionLost(self,reason):
-        print self
+        print(self)
         if reason.check(twisted.internet.error.ConnectionDone):
-            print '%s: connection closed.' % self.name
+            print('%s: connection closed.' % self.name)
         else:
-            print '%s: connection lost: %s' % (self.name,reason)
+            print('%s: connection lost: %s' % (self.name,reason))
         self.connectedSince = None
         return Receiver.connectionLost(self,reason)
 
     def lineReceived(self, message):
+        message = message.decode('latin-1')
         self.messagesReceived += 1
         # strip off a trailing \r (this allows us to accept lines via telnet)
         if message[-1] == '\r':
@@ -50,9 +54,9 @@ class MessageReceiver(Receiver):
         self.messageReceived(message)
         
     def lineLengthExceeded(self,message):
-        print '%s: max line length exceeded: %d > %d' % (
+        print('%s: max line length exceeded: %d > %d' % (
             self.name,len(message),self.MAX_LENGTH
-        )
+        ))
         return Receiver.lineLengthExceeded(self,message)
 
     def __str__(self):
@@ -100,7 +104,7 @@ class CommandReceiver(MessageReceiver):
             for row in update:
                 self.sendLine(repr(row))
             self.sendLine('Flush contained %d row(s)' % len(update))
-        except monitor.MonitorError,e:
+        except monitor.MonitorError as e:
             self.sendLine(str(e))
     
     def monitorSubscribe(self,cmd):
@@ -114,7 +118,7 @@ class CommandReceiver(MessageReceiver):
         try:
             subid = monitor.subscribe(name,**kwargs)
             self.sendLine('Created subscriber id %s' % subid)
-        except monitor.MonitorError,e:
+        except monitor.MonitorError as e:
             self.sendLine(str(e))
     
     def monitorInfo(self,cmd):
@@ -140,7 +144,7 @@ class CommandReceiver(MessageReceiver):
         log.msg('Creating expression "%s" as %s' % (name,expr))
         try:
             monitor.create(name,expr,help)
-        except monitor.MonitorError,e:
+        except monitor.MonitorError as e:
             self.sendLine(str(e))
     
     def monitorDrop(self,cmd):
@@ -148,7 +152,7 @@ class CommandReceiver(MessageReceiver):
         log.msg('Dropping monitor %s' % name)
         try:
             monitor.drop(name)
-        except monitor.MonitorError,e:
+        except monitor.MonitorError as e:
             self.sendLine(str(e))
     
     def messageReceived(self,message):
@@ -164,7 +168,7 @@ class CommandReceiver(MessageReceiver):
                 self.sendLine('ok')
             else:
                 self.sendLine('unknown command')
-        except parser.ParseError,e:
+        except parser.ParseError as e:
             log.err('%s: unable to parse message: %s' % (self.name,e))
             self.sendLine('Parse error: %s' % e)
 
@@ -215,7 +219,7 @@ class ReplyReceiver(MessageReceiver):
                                 # update actor key statistics
                                 actor.keyStats[keyword.name] = (
                                     actor.keyStats.get(keyword.name,0) + 1)
-                            except Exception,e:
+                            except Exception as e:
                                 log.err('Error writing to %s: %s (see below)'
                                     % (keytag,e.__class__.__name__))
                                 log.err(str(e))
@@ -229,7 +233,7 @@ class ReplyReceiver(MessageReceiver):
             # record the reply header fields
             self.replyHdr.record(rawID,actorID,hdr.program,hdr.user,
                 hdr.commandId,hdr.code,keyErrors)
-        except parser.ParseError,e:
+        except parser.ParseError as e:
             log.err('%s: unable to parse message: %s' % (self.name,e))
-        except actors.ActorException,e:
+        except actors.ActorException as e:
             log.err('%s: unable to attach actor: %s' % (self.name,e))
