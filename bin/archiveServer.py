@@ -139,7 +139,7 @@ def main(argv=None):
         
     import opscore.utility.config as config
     cli = config.ConfigOptionParser(
-        product_name='ics_archiver',config_file='archiver.ini',config_section='server'
+        product_name='ics_archiver',config_file='ics_archiver.ini',config_section='server'
     )
     
     cli.add_option('-i','--interactive',action='store_true',default=False,
