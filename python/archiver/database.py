@@ -1,16 +1,8 @@
 """
 Archiver interface to database storage
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 # Created 01-Mar-2009 by David Kirkby (dkirkby@uci.edu)
 
-from builtins import zip
-from builtins import str
-from builtins import range
-from builtins import object
 import os,os.path,string,time
 
 from twisted.internet import defer
