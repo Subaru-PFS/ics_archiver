@@ -43,7 +43,6 @@ def init(options):
         dbModule = 'psycopg2'
         connectionArgs = { 'user':user, 'password':pw, 'host':host, 'database':db }
         scanTables = "select tablename from pg_tables where tableowner='%s'" % user
-        Table.insertStatement = string.Template("COPY $table FROM '$file' CSV QUOTE ''''")
     elif options.dbEngine == 'mysql':
         dbModule = 'MySQLdb'
         connectionArgs = { 'user':user, 'passwd':pw, 'host':host, 'db':db }
@@ -172,12 +171,18 @@ def shutdown(dbapi,**connectionArgs):
     # close out each table in turn
     for table in Table.registry.values():
         print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
-        table.bufferFile.close()
         if len(table.rowBuffer) > 0:
-            statement = Table.insertStatement.substitute(
-                file=table.bufferFileName,table=table.name)
-            cursor.execute(statement)
-        os.unlink(table.bufferFileName)
+            try:
+                loadFile(cursor, table.bufferFile, table)
+            except Exception as e:
+                log.err('shutdown on table %s failed with error: %s'
+                        % (table.bufferFileName, e))
+        else:
+            try:
+                table.bufferFile.close()
+            except Exception as e:
+                log.err('shutdown closing table file %s failed with error: %s'
+                        % (table.bufferFileName, e))
         # close any open trace
         table.trace(enable=False)
     cursor.close()
@@ -204,17 +209,30 @@ def loadFile(transaction,bufferFile,table):
     """
     bufferFileName = bufferFile.name
     bufferFile.close()
-    statement = Table.insertStatement.substitute(
-        file=bufferFileName,table=table.name)
-    try:
-        transaction.execute(statement)
-        os.unlink(bufferFileName)
-    except Exception as e:
-        log.err('database.loadFile failed for %s with error: %s (see below for details)'
-            % (bufferFileName,e.__class__.__name__))
-        log.err(str(e))
+    if Table.insertStatement is not None:
+        statement = Table.insertStatement.substitute(
+            file=bufferFileName,table=table.name)
+        try:
+            transaction.execute(statement)
+            os.unlink(bufferFileName)
+        except Exception as e:
+            log.err('database.loadFile failed for %s with error: %s (see below for details)'
+                    % (bufferFileName,e.__class__.__name__))
+            log.err(str(e))
+    else:
+        # The substitution failed, so construct and execute our own cursor.copy_from() command.
+        statement = "COPY %s FROM STDIN CSV QUOTE ''''" % table.name
+        try:
+            with open(bufferFileName, 'r') as f:
+                transaction.copy_expert(statement, f)
+            os.unlink(bufferFileName)
+        except Exception as e:
+            log.err('database.loadFile failed for %s with error: %s (see below for details)'
+                    % (bufferFileName,e.__class__.__name__))
+            log.err(str(e))
+
     return table
-    
+
 def ping(options):
     """
     Performs periodic database maintenance
@@ -393,7 +411,7 @@ class Table(object):
         try:
             self.bufferSize = int(bufferSize)
         except ValueError as TypeError:
-            raise DatabaseException("Invalid buffer size for table %s: %r" % 
+            raise DatabaseException("Invalid buffer size for table %s: %r" %
                 (self.name,bufferSize))
         if self.bufferSize <= 0:
             raise DatabaseException("Buffer size must be positive for table %s: %s" %
