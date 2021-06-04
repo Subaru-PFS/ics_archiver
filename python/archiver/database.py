@@ -168,12 +168,15 @@ def shutdown(dbapi,**connectionArgs):
     print('database: starting shutdown sequence')
     db = dbapi.connect(**connectionArgs)
     cursor = db.cursor()
+    tableFiles = []
     # close out each table in turn
     for table in Table.registry.values():
         print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
         if len(table.rowBuffer) > 0:
             try:
-                loadFile(cursor, table.bufferFile, table)
+                bufferFileName = table.bufferFile.name
+                loadFile(cursor, table.bufferFile, table, doDelete=False)
+                tableFiles.append(bufferFileName)
             except Exception as e:
                 log.err('shutdown on table %s failed with error: %s'
                         % (table.bufferFileName, e))
@@ -188,6 +191,14 @@ def shutdown(dbapi,**connectionArgs):
     cursor.close()
     db.commit()
     db.close()
+    print("database: tables flushed")
+
+    for f in tableFiles:
+        try:
+            os.unlink(f)
+        except Exception as e:
+            log.err('shutdown deleting table file %s failed with error: %s'
+                    % (f, e))
     print('database: shutdown complete')
 
 def executeSQL(transaction,statements,table):
@@ -198,7 +209,7 @@ def executeSQL(transaction,statements,table):
         transaction.execute(statement)
     return table
 
-def loadFile(transaction,bufferFile,table):
+def loadFile(transaction,bufferFile,table, doDelete=True):
     """
     Loads the contents of an ASCII file into a database table
     
@@ -214,7 +225,8 @@ def loadFile(transaction,bufferFile,table):
             file=bufferFileName,table=table.name)
         try:
             transaction.execute(statement)
-            os.unlink(bufferFileName)
+            if doDelete:
+                os.unlink(bufferFileName)
         except Exception as e:
             log.err('database.loadFile failed for %s with error: %s (see below for details)'
                     % (bufferFileName,e.__class__.__name__))
@@ -225,7 +237,8 @@ def loadFile(transaction,bufferFile,table):
         try:
             with open(bufferFileName, 'r') as f:
                 transaction.copy_expert(statement, f)
-            os.unlink(bufferFileName)
+            if doDelete:
+                os.unlink(bufferFileName)
         except Exception as e:
             log.err('database.loadFile failed for %s with error: %s (see below for details)'
                     % (bufferFileName,e.__class__.__name__))
