@@ -1,0 +1,11 @@
+# Script to flush all files in an arhiver directory.
+# Must be run *in* that directory
+# Should have a db dump somewhere.
+# Could doubtless be made more efficient, using one psql process.
+#
+for file in $(ls -tr *[0-9]); do
+    table=$(echo $file | sed s'/_[0-9][0-9]*//')
+    echo "======== $table $file"
+    psql -d archiver -c "\COPY $table FROM '$file' CSV QUOTE ''''"
+    rm $file
+done
