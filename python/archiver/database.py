@@ -41,7 +41,9 @@ def init(options):
     host,user,pw,db = options.dbHost,options.dbUser,options.dbPassword,options.dbName
     if options.dbEngine == 'postgres':
         dbModule = 'psycopg2'
-        connectionArgs = { 'user':user, 'password':pw, 'host':host, 'database':db }
+        connectionArgs = { 'user':user, 'host':host, 'database':db }
+        if pw:
+            connectionArgs['password'] = pw
         scanTables = "select tablename from pg_tables where tableowner='%s'" % user
     elif options.dbEngine == 'mysql':
         dbModule = 'MySQLdb'
@@ -528,7 +530,7 @@ class Table(object):
                 self.nRows-self.traceRows,self.lastActivity-self.traceStart), file=self.traceFile)
         # flush this table now?
         if len(self.rowBuffer) >= self.bufferSize:
-            if self.busy:
+            if self.busy and len(self.rowBuffer) > 5:
                 print('delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name))
             else:
                 self.flushBuffer()
