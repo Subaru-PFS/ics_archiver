@@ -173,7 +173,8 @@ def shutdown(dbapi,**connectionArgs):
     tableFiles = []
     # close out each table in turn
     for table in Table.registry.values():
-        print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
+        if len(table.rowBuffer) > 1:
+            print('database: flushing %d rows to %s' % (len(table.rowBuffer),table.name))
         if len(table.rowBuffer) > 0:
             try:
                 bufferFileName = table.bufferFile.name
@@ -474,7 +475,8 @@ class Table(object):
         self.bufferFile = open(self.bufferFileName,'w')
         
     def flushBuffer(self):
-        print('%s: flushing %d rows' % (self.name,len(self.rowBuffer)))
+        if len(self.rowBuffer) > 5:
+            print('%s: flushing %d rows' % (self.name,len(self.rowBuffer)))
         self.nFlushes += 1
         self.busy = True
         if self.traceEnable:
@@ -530,8 +532,9 @@ class Table(object):
                 self.nRows-self.traceRows,self.lastActivity-self.traceStart), file=self.traceFile)
         # flush this table now?
         if len(self.rowBuffer) >= self.bufferSize:
-            if self.busy and len(self.rowBuffer) > 5:
-                print('delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name))
+            if self.busy:
+                if len(self.rowBuffer) > 5:
+                    print('delaying flush of %d rows to %s' % (len(self.rowBuffer),self.name))
             else:
                 self.flushBuffer()
                 self.openBuffer()
